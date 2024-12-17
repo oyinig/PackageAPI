@@ -53,3 +53,14 @@
       file:
         path: /home/ubuntu/{{ app_name }}
         state: absent
+
+
+### Inventory File: inventory.ini
+### Create an inventory file to specify your EC2 instance:
+### [aws_ec2]
+### your-ec2-public-dns-or-ip ansible_ssh_user=ubuntu ansible_ssh_private_key_file=path/to/your/private/key.pem
+
+### Running the Playbook
+### To execute the playbook, run the following command from the root of your application folder:
+### ansible-playbook -i inventory.ini deploy.yml
+### This command will deploy your application to the specified EC2 instance using Docker. Adjust the paths and variables as needed to fit your specific setup.
