@@ -1,0 +1,55 @@
+---
+- name: Deploy Spring Boot Application on AWS EC2
+  hosts: aws_ec2
+  become: yes
+  vars:
+    app_name: codingexercise
+    docker_image: codingexercise:latest
+    docker_container_name: codingexercise_container
+    app_port: 8080
+  tasks:
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+      become: yes
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Copy application files to EC2
+      synchronize:
+        src: .
+        dest: /home/ubuntu/{{ app_name }}
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=target"
+          - "--exclude=*.iml"
+        mode: push
+
+    - name: Build Docker image
+      command: docker build -t {{ docker_image }} /home/ubuntu/{{ app_name }}
+      args:
+        chdir: /home/ubuntu/{{ app_name }}
+
+    - name: Stop existing Docker container
+      command: docker stop {{ docker_container_name }}
+      ignore_errors: yes
+
+    - name: Remove existing Docker container
+      command: docker rm {{ docker_container_name }}
+      ignore_errors: yes
+
+    - name: Run Docker container
+      command: >
+        docker run -d --name {{ docker_container_name }}
+        -p {{ app_port }}:8080
+        {{ docker_image }}
+
+    - name: Clean up application files
+      file:
+        path: /home/ubuntu/{{ app_name }}
+        state: absent
