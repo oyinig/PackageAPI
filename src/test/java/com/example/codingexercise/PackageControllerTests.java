@@ -1,82 +1,105 @@
 package com.example.codingexercise;
 
-import com.example.codingexercise.repository.PackageRepository;
+import com.example.codingexercise.dto.PackageRequest;
+import com.example.codingexercise.dto.PackageDTO;
+import com.example.codingexercise.service.PackageService;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import java.util.Collections;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 public class PackageControllerTests {
 
-	private final TestRestTemplate restTemplate;
-    private final PackageRepository packageRepository;
-    private final MockMvc mockMvc;
+	@Autowired
+	private MockMvc mockMvc;
 
-    @Autowired
-    PackageControllerTests(TestRestTemplate restTemplate, PackageRepository packageRepository, MockMvc mockMvc) {
-		this.restTemplate = restTemplate;
-        this.packageRepository = packageRepository;
-        this.mockMvc = mockMvc;
-    }
+	@MockBean
+	private PackageService packageService;
 
-//    @Test
-//    void createPackage() {
-//		ResponseEntity<SeeIfItsUnused> created = restTemplate.postForEntity("/packages", new PackageRequest(null, "Test Name", "Test Desc", List.of("prod1")), PackageRequest.class);
-//        assertEquals(HttpStatus.OK, created.getStatusCode(), "Unexpected status code");
-//        SeeIfItsUnused createdBody = created.getBody();
-//        assertNotNull(createdBody, "Unexpected body");
-//        assertEquals("Test Name", createdBody.getName(), "Unexpected name");
-//        assertEquals("Test Desc", createdBody.getDescription(), "Unexpected description");
-//        assertEquals(List.of("prod1"), createdBody.getProductIds(), "Unexpected products");
-//
-//        SeeIfItsUnused productPackage = packageRepository.get(createdBody.getId());
-//        assertNotNull(productPackage, "Unexpected package");
-//        assertEquals(createdBody.getId(), productPackage.getId(), "Unexpected id");
-//        assertEquals(createdBody.getName(), productPackage.getName(), "Unexpected name");
-//        assertEquals(createdBody.getDescription(), productPackage.getDescription(), "Unexpected description");
-//        assertEquals(createdBody.getProductIds(), productPackage.getProductIds(), "Unexpected products");
-//    }
-//
-//    @Test
-//    void getPackage() {
-//        SeeIfItsUnused productPackage = packageRepository.create("Test Name 2", "Test Desc 2", List.of("prod2"));
-//        ResponseEntity<SeeIfItsUnused> fetched = restTemplate.getForEntity("/packages/{id}", SeeIfItsUnused.class, productPackage.getId());
-//        assertEquals(HttpStatus.OK, fetched.getStatusCode(), "Unexpected status code");
-//        SeeIfItsUnused fetchedBody = fetched.getBody();
-//        assertNotNull(fetchedBody, "Unexpected body");
-//        assertEquals(productPackage.getId(), fetchedBody.getId(), "Unexpected id");
-//        assertEquals(productPackage.getName(), fetchedBody.getName(), "Unexpected name");
-//        assertEquals(productPackage.getDescription(), fetchedBody.getDescription(), "Unexpected description");
-//        assertEquals(productPackage.getProductIds(), fetchedBody.getProductIds(), "Unexpected products");
-//    }
-//
-//    @Test
-//    void listPackages() {
-//        SeeIfItsUnused productPackage1 = packageRepository.create("Test Name 1", "Test Desc 1", List.of("prod1"));
-//        SeeIfItsUnused productPackage2 = packageRepository.create("Test Name 2", "Test Desc 2", List.of("prod2"));
-//
-//        ResponseEntity<Object> fetched = restTemplate.getForEntity("/packages", Object.class);
-//        assertEquals(HttpStatus.OK, fetched.getStatusCode(), "Unexpected status code");
-//    }
-//
-//    @Test
-//    public void testCreatePackage() throws Exception {
-//        // Create a mock package JSON
-//        String packageJson = "{ \"name\": \"Test Package\", \"description\": \"A test package\", \"products\": [] }";
-//
-//        mockMvc.perform(post("/api/packages")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(packageJson))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.name").value("Test Package"));
-//    }
+	@Test
+	void testCreatePackage() throws Exception {
+		when(packageService.createPackage(any(PackageRequest.class)))
+				.thenReturn(new PackageDTO(1L, "Test Package", "Test Description", null));
 
+		String packageJson = """
+				{
+					"name": "Test Package",
+					"description": "Test Description",
+					"productIds": ["VqKb4tyj9V6i"]
+				}
+				""";
+
+		mockMvc.perform(post("/api/packages")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(packageJson))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Test Package"))
+				.andExpect(jsonPath("$.description").value("Test Description"));
+	}
+
+	@Test
+	void testGetPackage() throws Exception {
+		when(packageService.getPackage(eq(1L), eq("USD")))
+				.thenReturn(new PackageDTO(1L, "Test Package", "Test Description", null));
+
+		mockMvc.perform(get("/api/packages/1")
+				.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Test Package"))
+				.andExpect(jsonPath("$.description").value("Test Description"));
+	}
+
+	@Test
+	void testUpdatePackage() throws Exception {
+		PackageDTO updatedPackage = new PackageDTO(1L, "Updated Package", "Updated Description", null);
+		when(packageService.updatePackage(eq(1L), any(PackageRequest.class)))
+				.thenReturn(updatedPackage);
+
+		String packageJson = """
+				{
+					"name": "Updated Package",
+					"description": "Updated Description",
+					"productIds": ["VqKb4tyj9V6i"]
+				}
+				""";
+
+		mockMvc.perform(put("/api/packages/1")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(packageJson))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Updated Package"))
+				.andExpect(jsonPath("$.description").value("Updated Description"));
+	}
+
+	@Test
+	void testDeletePackage() throws Exception {
+		mockMvc.perform(delete("/api/packages/1"))
+				.andExpect(status().isNoContent());
+	}
+
+	@Test
+	void testListPackages() throws Exception {
+		when(packageService.listPackages(eq("USD")))
+				.thenReturn(Collections.singletonList(new PackageDTO(1L, "Test Package", "Test Description", null)));
+
+		mockMvc.perform(get("/api/packages")
+				.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].name").value("Test Package"))
+				.andExpect(jsonPath("$[0].description").value("Test Description"));
+	}
 }

@@ -32,8 +32,8 @@ public class PackageController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Package> updatePackage(@PathVariable Long id, @RequestBody Package pkg) {
-        Package updatedPackage = packageService.updatePackage(id, pkg);
+    public ResponseEntity<PackageDTO> updatePackage(@PathVariable Long id, @RequestBody PackageRequest pkg) {
+        PackageDTO updatedPackage = packageService.updatePackage(id, pkg);
         return ResponseEntity.ok(updatedPackage);
     }
 

@@ -20,6 +20,9 @@ public class PackageService {
     @Autowired
     private CurrencyGateway currencyGateway;
 
+    @Autowired
+    private ProductServiceGateway productServiceGateway;
+
     public PackageDTO createPackage(PackageRequest pkgRequest) {
         // Create new package first
         Package pkg = new Package();
@@ -28,7 +31,7 @@ public class PackageService {
 
         // Fetch and create products with package reference
         List<Product> products = pkgRequest.getProducts().stream()
-            .map(ProductServiceGateway::getProduct)
+            .map(productServiceGateway::getProduct)
             .map(gatewayProduct -> {
                 Product product = new Product();
                 product.setProductId(gatewayProduct.id());
@@ -58,13 +61,13 @@ public class PackageService {
         return toDTO(pkg);
     }
 
-    public Package updatePackage(Long id, Package pkg) {
-        // Logic to update package
-        if (packageRepository.existsById(id)) {
-            pkg.setId(id);
-            return packageRepository.save(pkg);
-        }
-        return null;
+    public PackageDTO updatePackage(Long id, PackageRequest pkgReq) {
+        return packageRepository.findById(id).map(pkg -> {
+            pkg.setName(pkgReq.getName());
+            pkg.setDescription(pkgReq.getDescription());
+            Package updatedPackage = packageRepository.save(pkg);
+            return toDTO(updatedPackage); // Convert to PackageDTO
+        }).orElse(null);
     }
 
     public void deletePackage(Long id) {
@@ -106,4 +109,4 @@ public class PackageService {
             productDTOs
         );
     }
-} 
+}
